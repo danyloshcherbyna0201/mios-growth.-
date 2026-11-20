@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101010">
+<title>MIOS Growth Challenge</title>
+<style>
+:root{color-scheme:dark;--bg:#101010;--panel:#1b1b1b;--muted:#9b9b9b;--line:#303030;--green:#b8f36b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#f5f5f5;font:16px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:env(safe-area-inset-top) 18px calc(24px + env(safe-area-inset-bottom))}
+main{max-width:520px;margin:0 auto;padding-top:24px}.top{display:flex;justify-content:space-between;align-items:center;gap:12px}.brand{font-size:12px;letter-spacing:2.5px;font-weight:800}.tag{font-size:11px;color:var(--green);border:1px solid #47602e;border-radius:20px;padding:7px 10px}
+h1{font-size:30px;line-height:1.05;margin:28px 0 8px;letter-spacing:-1px}.sub{color:var(--muted);font-size:14px;margin:0 0 22px}
+.score{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:20px;margin-bottom:18px}.scoreline{display:flex;align-items:end;justify-content:space-between}.number{font-size:42px;font-weight:800;letter-spacing:-2px}.number span{font-size:16px;color:var(--muted);letter-spacing:0;font-weight:500}.small{color:var(--muted);font-size:12px}.bar{height:9px;background:#333;border-radius:20px;overflow:hidden;margin-top:14px}.fill{height:100%;width:0;background:var(--green);border-radius:20px;transition:width .2s}
+.section{display:flex;justify-content:space-between;align-items:center;margin:24px 2px 12px}.section strong{font-size:14px}.section span{font-size:12px;color:var(--muted)}
+.task{display:flex;align-items:center;gap:13px;padding:16px;background:var(--panel);border:1px solid var(--line);border-radius:15px;margin-bottom:9px;cursor:pointer}.task input{appearance:none;width:22px;height:22px;border:1.5px solid #777;border-radius:7px;flex:0 0 22px;margin:0;display:grid;place-items:center}.task input:checked{background:var(--green);border-color:var(--green)}.task input:checked:after{content:"✓";color:#101010;font-weight:900;font-size:15px}.task .name{font-size:14px;line-height:1.35;flex:1}.task .xp{font-size:12px;color:var(--green);font-weight:700;white-space:nowrap}.task.done .name{text-decoration:line-through;color:#888}
+.actions{display:flex;gap:10px;margin-top:20px}.btn{border:1px solid var(--line);border-radius:12px;padding:13px 15px;background:#222;color:#fff;font-size:13px;font-weight:650;flex:1}.btn.primary{background:var(--green);color:#101010;border-color:var(--green)}.foot{text-align:center;color:#777;font-size:11px;line-height:1.5;margin:22px 10px}.notice{font-size:12px;color:#b8f36b;min-height:18px;margin-top:12px;text-align:center}
+</style>
+</head>
+<body>
+<main>
+  <div class="top"><div class="brand">MIOS / GROWTH</div><div class="tag">WEEKLY CHALLENGE</div></div>
+  <h1>Growth<br>Challenge</h1>
+  <p class="sub">Маленькі дії щодня — стабільний потік пацієнтів.</p>
+  <section class="score">
+    <div class="scoreline"><div><div class="small">ТВІЙ РЕЗУЛЬТАТ</div><div class="number"><span id="scoreValue">0</span> <span>/ 100 XP</span></div></div><div class="small" id="percent">0% виконано</div></div>
+    <div class="bar"><div class="fill" id="fill"></div></div>
+  </section>
+  <div class="section"><strong>Завдання тижня</strong><span id="count">0 з 6 виконано</span></div>
+  <div id="tasks"></div>
+  <div class="actions"><button class="btn" id="reset" type="button">Скинути тиждень</button><button class="btn primary" id="share" type="button">Поділитися прогресом</button></div>
+  <div class="notice" id="notice" aria-live="polite"></div>
+  <p class="foot">Прогрес зберігається на цьому пристрої, якщо браузер дозволяє сховище.<br>MIOS · Recovery & Physical Therapy</p>
+</main>
+<script>
+(function(){
+"use strict";
+const tasks=[
+ ["Здійснити 5 дзвінків лікарям",15],
+ ["Провести 2 особисті зустрічі з лікарями",20],
+ ["Запросити 3 лікарів у MIOS",15],
+ ["Отримати 15 нових заявок",25],
+ ["Провести 5 повторних контактів із лікарями",10],
+ ["Отримати 3 направлення від партнерів",15]
+];
+const STORAGE_KEY="mios-growth-challenge-v2";
+let storageAvailable=false;
+let done=[];
+const notice=document.getElementById("notice");
+function showNotice(message){notice.textContent=message;}
+function loadState(){
+ try{
+  const raw=window.localStorage.getItem(STORAGE_KEY);
+  storageAvailable=true;
+  const parsed=raw?JSON.parse(raw):[];
+  if(Array.isArray(parsed)) done=parsed.filter(i=>Number.isInteger(i)&&i>=0&&i<tasks.length);
+ }catch(error){storageAvailable=false;done=[];}
+}
+function saveState(){
+ if(!storageAvailable){showNotice("Збереження недоступне в цьому перегляді. Відкрий файл у Safari.");return;}
+ try{window.localStorage.setItem(STORAGE_KEY,JSON.stringify(done));showNotice("Прогрес збережено ✓");}
+ catch(error){storageAvailable=false;showNotice("Браузер заблокував збереження прогресу.");}
+}
+function render(){
+ const root=document.getElementById("tasks");
+ root.replaceChildren();
+ tasks.forEach(([name,xp],i)=>{
+  const label=document.createElement("label");
+  label.className="task"+(done.includes(i)?" done":"");
+  const input=document.createElement("input");
+  input.type="checkbox";input.checked=done.includes(i);
+  input.setAttribute("aria-label",name);
+  input.addEventListener("change",()=>{
+   done=input.checked?[...done,i]:done.filter(x=>x!==i);
+   saveState();render();
+  });
+  const text=document.createElement("span");text.className="name";text.textContent=name;
+  const points=document.createElement("span");points.className="xp";points.textContent="+"+xp+" XP";
+  label.append(input,text,points);root.append(label);
+ });
+ const total=done.reduce((sum,i)=>sum+tasks[i][1],0);
+ document.getElementById("scoreValue").textContent=String(total);
+ document.getElementById("percent").textContent=total+"% виконано";
+ document.getElementById("fill").style.width=total+"%";
+ document.getElementById("count").textContent=done.length+" з 6 виконано";
+}
+document.getElementById("reset").addEventListener("click",()=>{
+ if(window.confirm("Скинути всі завдання цього тижня?")){
+  done=[];saveState();render();showNotice("Тиждень скинуто.");
+ }
+});
+document.getElementById("share").addEventListener("click",async()=>{
+ const total=done.reduce((sum,i)=>sum+tasks[i][1],0);
+ const message="MIOS Growth Challenge: "+total+"/100 XP · "+done.length+"/6 завдань виконано";
+ try{
+  if(navigator.share){await navigator.share({title:"MIOS Growth Challenge",text:message});}
+  else if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(message);showNotice("Прогрес скопійовано ✓");}
+  else{window.prompt("Скопіюй свій прогрес:",message);}
+ }catch(error){if(error.name!=="AbortError")showNotice("Не вдалося поділитися прогресом.");}
+});
+loadState();
+render();
+if(!storageAvailable)showNotice("Режим перегляду: прогрес може не зберігатися. Спробуй відкрити в Safari.");
+})();
+</script>
+</body>
+</html>
